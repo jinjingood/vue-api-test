@@ -1,10 +1,19 @@
 <template>
   <nav>
     <router-link to="/">MusicPlayer1</router-link> |
-    <router-link to="/about">About</router-link>
+    <router-link to="/MusicPlayer2">MusicPlayer2</router-link>
   </nav>
-  <router-view/>
+  <div class="page-box">
+    <router-view />
+    <Player class="player" />
+  </div>
 </template>
+<script>
+import Player from "@/components/Player.vue";
+export default {
+  components: { Player },
+};
+</script>
 
 <style lang="less">
 #app {
@@ -25,6 +34,14 @@ nav {
     &.router-link-exact-active {
       color: #42b983;
     }
+  }
+}
+.page-box {
+  padding: 0 30px;
+  overflow: hidden;
+  .player {
+    position: absolute;
+    bottom: 10px;
   }
 }
 </style>
