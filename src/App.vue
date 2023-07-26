@@ -10,8 +10,16 @@
 </template>
 <script>
 import Player from "@/components/Player.vue";
+
 export default {
   components: { Player },
+  // setup() {
+  //   const store = useStore();
+  //   const state = reactive({
+  //     Playersong: store.state.Playersong,
+  //     index: store.state.Index,
+  //   });
+  // },
 };
 </script>
 
@@ -37,11 +45,11 @@ nav {
   }
 }
 .page-box {
-  padding: 0 30px;
   overflow: hidden;
   .player {
     position: absolute;
     bottom: 10px;
+    margin: 0 30px;
   }
 }
 </style>

@@ -3,12 +3,9 @@
     <h2 style="text-align: left">发现好歌</h2>
     <div class="list-box">
       <div class="list-container">
-        <div
-          class="list-item"
-          v-for="item in Personalizedlist"
-          @click="toplaylist"
-        >
+        <div class="list-item" v-for="item in Personalizedlist">
           <router-link :to="{ path: '/MusicItem', query: { id: item.id } }">
+            <!-- <router-link :to="{ name: 'MusicItem', params: { id: item.id } }"></router-link> -->
             <img class="list-item-img" :src="item.picUrl" />
             <div class="list-item-img-mask">
               <p>{{ Count(item.playCount) }}</p>
@@ -32,10 +29,9 @@ export default {
     const state = reactive({
       Personalizedlist: [],
     });
-    onMounted(async () => {  
+    onMounted(async () => {
       let res = await getPersonalized();
       state.Personalizedlist = res.data.result;
-      // console.log("每日推荐：" + JSON.stringify(res));
     });
     function Count(num) {
       if (num >= 100000000) {

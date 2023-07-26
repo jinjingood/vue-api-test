@@ -17,17 +17,11 @@ export const getPersonalized = () => {
 };
 
 //获取歌单详情
-// export const getPlaylist = (data) => {
-//   return service({
-//     method: "GET",
-//     url:`playlist/detail?id=${data}`,
-//   });
-// };
-
 export function getPlaylist(data) {
+  //另一种写法
   return service({
     method: "GET",
-    url:`playlist/detail?id=${data}`, //注意必须用反引号，不然报400，无法获取。反引号是数字1左边那个键
+    url: `playlist/detail?id=${data}`, //注意必须用反引号，不然报400，无法获取。反引号是数字1左边那个键
   });
 }
 
@@ -35,6 +29,22 @@ export function getPlaylist(data) {
 export const getAllMusic = (data) => {
   return service({
     method: "GET",
-    urt: `song/detail?ids=${data}`,
+    url: `song/detail?ids=${data}`,
+  });
+};
+
+//获取单个歌曲url
+export const getSongdetail = (data) => {
+  return service({
+    method: "GET",
+    url: `song/detail?ids=${data}`,
+  });
+};
+
+//获取歌词
+export const getLyrics = (data) => {
+  return service({
+    method: "GET",
+    url: `lyric?id=${data}`,
   });
 };
