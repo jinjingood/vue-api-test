@@ -24,14 +24,14 @@ export default {
   setup(props, context) {
     const store = useStore();
     const state = reactive({
-      playing: { ...store.state.playing },
+      playing: store.state.playing ,
       interVal: 0,
     });
 
     watch(
       () => store.state.playing,
       () => {
-        state.playing = { ...store.state.playing };
+        state.playing = store.state.playing ;
       }
     );
 
@@ -49,6 +49,7 @@ export default {
       //改法3:同理，还可以用object.assign（）来写
     };
     const clickSongName = (index) => {
+      state.playing = true;
       store.commit("updatePlaying", state.playing);
       context.emit("clickSongName", props.songlist[index]);
       // console.log("点击歌名：" + JSON.stringify(props.songlist[index]));

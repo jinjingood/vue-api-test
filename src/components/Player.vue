@@ -45,7 +45,8 @@ export default {
     });
 
     watch([() => store.state.playing, () => state.Playersong], () => {
-      state.playing = Object.assign(store.state.playing);
+      // state.playing = Object.assign(store.state.playing);
+      state.playing = store.state.playing
       if (state.playing) {
         getAudiotime();
       }
@@ -80,7 +81,7 @@ export default {
     const getAudiotime = () => {
       state.interVal = setInterval(() => {
         store.commit("updateTime", audio.value.currentTime);
-      }, 1000);
+      }, 500);
       console.log("每秒打印播放时间：" + audio.value.currentTime);
     };
 

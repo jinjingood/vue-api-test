@@ -12,11 +12,7 @@
       class="PlayList"
     ></PlayList>
     <div class="SongDetail-box" v-if="open">
-      <SongDetail
-        :songdetail="songdetail"
-        @closeSongDetail="closeSongDetail"
-        @changeplaying="changeplaying"
-      />
+      <SongDetail :songdetail="songdetail" @closeSongDetail="closeSongDetail" />
     </div>
   </div>
 </template>
@@ -65,7 +61,6 @@ export default {
     };
 
     // const changeplaying = (value) => {
-
     //   store.commit("updatePlaying", value);
     // };
 
@@ -104,6 +99,7 @@ export default {
       ...toRefs(state),
       openSongDetail,
       closeSongDetail,
+      // changeplaying,
     };
   },
 };
@@ -137,6 +133,7 @@ export default {
     height: calc(100% - 82px);
     background-color: aliceblue;
     z-index: 1;
+    transition: all 1s ease-out;
   }
 }
 </style>
