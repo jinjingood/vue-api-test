@@ -12,11 +12,7 @@
       class="PlayList"
     ></PlayList>
     <div class="SongDetail-box" v-if="open">
-      <SongDetail
-        :songdetail="songdetail"
-        @closeSongDetail="closeSongDetail"
-        @changeplaying="changeplaying"
-      />
+      <SongDetail :songdetail="songdetail" @closeSongDetail="closeSongDetail" />
     </div>
   </div>
 </template>
@@ -41,31 +37,29 @@ export default {
       playlist: {},
       songlist: [],
       trackIds: [],
-      open: false,
-      // open: { ...store.state.Open },
-      // clickid: null,
+      open: store.state.Open,
       songdetail: {},
     });
     //
     watch(
       () => store.state.Open,
       () => {
-        state.open = { ...store.state.Open };
+        state.open = store.state.Open;
         console.log("监听到了store中open的变化：" + store.state.Open);
       }
     );
     const openSongDetail = (value) => {
       state.songdetail = value;
-      state.open = true;
-      // store.commit("updateOpen", true);
+      // state.open = true;
+      store.commit("updateOpen", true);
     };
 
     const closeSongDetail = (value) => {
       state.open = value;
+      store.commit("updateOpen", false);
     };
 
     // const changeplaying = (value) => {
-
     //   store.commit("updatePlaying", value);
     // };
 
@@ -104,6 +98,7 @@ export default {
       ...toRefs(state),
       openSongDetail,
       closeSongDetail,
+      // changeplaying,
     };
   },
 };
@@ -137,6 +132,7 @@ export default {
     height: calc(100% - 82px);
     background-color: aliceblue;
     z-index: 1;
+    transition: all 1s ease-out;
   }
 }
 </style>

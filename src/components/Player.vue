@@ -44,29 +44,42 @@ export default {
       interVal: 0,
     });
 
-    watch([() => store.state.playing, () => state.Playersong], () => {
-      state.playing = Object.assign(store.state.playing);
-      if (state.playing) {
-        getAudiotime();
-      }
+    watch(
+      [
+        () => store.state.playing,
+        () => store.state.Playersong,
+        () => store.state.Index,
+      ],
+      () => {
+        // state.playing = Object.assign(store.state.playing);
+        state.playing = store.state.playing;
+        if (state.playing) {
+          getAudiotime();
+          audio.value.play();
+        } else {
+          audio.value.pause();
+          clearInterval(state.interVal);
+        }
 
-      console.log(
-        "播放器监听到了store中playing为：" + JSON.stringify(store.state.playing)
-      );
-      console.log("播放器的playing为：" + JSON.stringify(state.playing));
-    });
+        console.log(
+          "播放器监听到了store中playing为：" +
+            JSON.stringify(store.state.playing)
+        );
+        console.log("播放器的playing为：" + JSON.stringify(state.playing));
+      }
+    );
 
     const audio = ref();
     const controlPlayer = () => {
       if (state.playing) {
         audio.value.pause();
         // audio.value.Timeupdate();
-        state.playing = false;
+        // state.playing = false;
         store.commit("updatePlaying", false);
         getAudiotime();
       } else {
         audio.value.play();
-        state.playing = true;
+        // state.playing = true;
         store.commit("updatePlaying", true);
         clearInterval(state.interVal); //清除定时器
       }
@@ -80,7 +93,7 @@ export default {
     const getAudiotime = () => {
       state.interVal = setInterval(() => {
         store.commit("updateTime", audio.value.currentTime);
-      }, 1000);
+      }, 500);
       console.log("每秒打印播放时间：" + audio.value.currentTime);
     };
 

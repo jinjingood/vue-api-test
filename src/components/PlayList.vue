@@ -24,22 +24,23 @@ export default {
   setup(props, context) {
     const store = useStore();
     const state = reactive({
-      playing: { ...store.state.playing },
+      // playing: store.state.playing ,
       interVal: 0,
     });
 
-    watch(
-      () => store.state.playing,
-      () => {
-        state.playing = { ...store.state.playing };
-      }
-    );
+    // watch(
+    //   () => store.state.playing,
+    //   () => {
+    //     state.playing = store.state.playing ;
+    //   }
+    // );
 
     const PlayThisSong = (index) => {
       store.commit("updatePlayersong", props.songlist);
       store.commit("updateIndex", index);
-      state.playing = true;
-      store.commit("updatePlaying", state.playing);
+      // state.playing = true;
+      // store.commit("updatePlaying",false);
+       store.commit("updatePlaying",true);
 
       //这里出了很大的错，我原先在state里面声明了一个songlist：props.songlist，结果导致store.commit一直传的是空值，只有这个组件我修改后，才能拿到。
       //原因1：props.songlist只会在一开始拿到1次，所以我需要监听props.songlist才行
@@ -49,7 +50,8 @@ export default {
       //改法3:同理，还可以用object.assign（）来写
     };
     const clickSongName = (index) => {
-      store.commit("updatePlaying", state.playing);
+      // state.playing = true;
+      store.commit("updatePlaying", true);
       context.emit("clickSongName", props.songlist[index]);
       // console.log("点击歌名：" + JSON.stringify(props.songlist[index]));
     };
