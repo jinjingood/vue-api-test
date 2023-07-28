@@ -13,13 +13,6 @@ import Player from "@/components/Player.vue";
 
 export default {
   components: { Player },
-  // setup() {
-  //   const store = useStore();
-  //   const state = reactive({
-  //     Playersong: store.state.Playersong,
-  //     index: store.state.Index,
-  //   });
-  // },
 };
 </script>
 

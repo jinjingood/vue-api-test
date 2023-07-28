@@ -24,24 +24,14 @@ export default {
   setup(props, context) {
     const store = useStore();
     const state = reactive({
-      // playing: store.state.playing ,
       interVal: 0,
     });
 
-    // watch(
-    //   () => store.state.playing,
-    //   () => {
-    //     state.playing = store.state.playing ;
-    //   }
-    // );
-
     const PlayThisSong = (index) => {
-      store.commit("updatePlayersong", props.songlist);
+      store.commit("updatePlayersongs", props.songlist);
       store.commit("updateIndex", index);
-      // state.playing = true;
-      // store.commit("updatePlaying",false);
-       store.commit("updatePlaying",true);
-
+      store.commit("updatePlaying", true);
+      context.emit("clickSongList", index);
       //这里出了很大的错，我原先在state里面声明了一个songlist：props.songlist，结果导致store.commit一直传的是空值，只有这个组件我修改后，才能拿到。
       //原因1：props.songlist只会在一开始拿到1次，所以我需要监听props.songlist才行
       //改法1:因为我拿到props.songlist不需要做啥变化，直接就用，所以不需要在state用一个变量来承接props.songlist
@@ -49,16 +39,14 @@ export default {
       //改法2:所以如果想写songlist：props.songlist的话，最好写成：songlist：[...props.songlist],这样[...props.songlist]其实在一个新地址，也就不会污染原始地址
       //改法3:同理，还可以用object.assign（）来写
     };
+
     const clickSongName = (index) => {
-      // state.playing = true;
       store.commit("updatePlaying", true);
-      context.emit("clickSongName", props.songlist[index]);
+      context.emit("clickSongName", index);
       // console.log("点击歌名：" + JSON.stringify(props.songlist[index]));
     };
 
- 
-
-    return { ...toRefs(state), PlayThisSong, clickSongName, };
+    return { ...toRefs(state), PlayThisSong, clickSongName };
   },
 };
 </script>

@@ -3,33 +3,43 @@
     <div class="player-left">
       <div class="song-img-box">
         <img
-          @click="clickSongImg(Playersong[index])"
-          :src="Playersong[index].al.picUrl"
+          @click="clickSongImg"
+          :src="Playersongs[index].al.picUrl"
           :class="{ 'img-running': playing, 'img-stop': !playing }"
         />
       </div>
       <div class="song-infor-box">
         <span class="song-name">{{
-          Playersong[index] ? Playersong[index].name : ""
+          Playersongs[index] ? Playersongs[index].name : ""
         }}</span>
-        <span class="singer-name">放歌词</span>
+        <span class="singer-name">{{
+          songDuration(Playersongs[index].dt).time
+        }}</span>
       </div>
     </div>
     <div class="player-rihgt">
       <div class="play-btn" @click="controlPlayer">
-        <div v-if="!playing" class="stoped"></div>
-        <div v-else class="playing"></div>
+        <div v-if="!playing" class="tostop"></div>
+        <div v-else class="toplay"></div>
       </div>
       <audio
         ref="audio"
-        :src="`https://music.163.com/song/media/outer/url?id=${Playersong[index].id}.mp3`"
+        :src="`https://music.163.com/song/media/outer/url?id=${Playersongs[index].id}.mp3`"
       ></audio>
     </div>
   </div>
 </template>
 
 <script>
-import { reactive, toRefs, ref, watch, onMounted, computed } from "vue";
+import {
+  reactive,
+  toRefs,
+  ref,
+  watch,
+  onMounted,
+  computed,
+  watchEffect,
+} from "vue";
 import { useStore } from "vuex";
 
 export default {
@@ -37,35 +47,47 @@ export default {
   setup(props) {
     const store = useStore();
     const state = reactive({
-      Playersong: store.state.Playersong,
+      Playersongs: store.state.Playersongs,
       index: store.state.Index,
       playing: false,
       open: store.state.open,
       interVal: 0,
+      audioduration: 0,
     });
 
     watch(
       [
         () => store.state.playing,
-        () => store.state.Playersong,
+        () => store.state.Playersongs,
         () => store.state.Index,
+        // () => store.state.SongDuration,
       ],
+
       () => {
-        // state.playing = Object.assign(store.state.playing);
         state.playing = store.state.playing;
         if (state.playing) {
           getAudiotime();
-          audio.value.play();
+          // audio.value.play()
+          setTimeout(() => {
+            audio.value.play(), 100;
+          });
+          //为了防止报play()被中断的错误（中断好像是因为立即调用了pause(),网上说的这种方法：
+          //https://segmentfault.com/q/1010000007130230
         } else {
           audio.value.pause();
           clearInterval(state.interVal);
         }
+      }
+    );
 
-        console.log(
-          "播放器监听到了store中playing为：" +
-            JSON.stringify(store.state.playing)
-        );
-        console.log("播放器的playing为：" + JSON.stringify(state.playing));
+    watch(
+      [() => store.state.Playersongs, () => store.state.Index],
+      //注意监听这块，=>后面不要加{},而是直接写要被监听的内容
+      () => {
+        state.Playersongs = store.state.Playersongs;
+        state.index = store.state.Index;
+        audio.value.autoplay = true;
+        state.playing = true;
       }
     );
 
@@ -73,46 +95,57 @@ export default {
     const controlPlayer = () => {
       if (state.playing) {
         audio.value.pause();
-        // audio.value.Timeupdate();
-        // state.playing = false;
         store.commit("updatePlaying", false);
         getAudiotime();
       } else {
         audio.value.play();
-        // state.playing = true;
         store.commit("updatePlaying", true);
         clearInterval(state.interVal); //清除定时器
       }
     };
+
+    // state.audioduration = () => {
+    //   console.log("audio时长是：" + audio.value.duration);
+    //   return audio.value.duration;
+    // };
+
+    //点击唱片，打开SongDetai组件
     const clickSongImg = () => {
+      // store.commit("updatePlayersongs", state.Playersongs);
+      // store.commit("updateIndex", state.index);
       store.commit("updateOpen", true);
-      console.log("播放器点击了唱片");
+      //为什么不先点歌名，直接点唱片就会报错呢？好像是api请求时，没拿到id，获取不到详情
     };
 
-    //传送播放器当前的播放了多吃时间（毫秒）
+    //传送播放器当前播放了多长时间（毫秒）
     const getAudiotime = () => {
       state.interVal = setInterval(() => {
-        store.commit("updateTime", audio.value.currentTime);
+        store.commit("updateTime", audio.value.currentTime); //value不能去掉，否则就拿不到播放器时间了
       }, 500);
-      console.log("每秒打印播放时间：" + audio.value.currentTime);
+      // return state.interVal//不知道能不能解决currentTime报错问题
+      // console.log("每秒打印播放时间：" + audio.value.currentTime);
     };
 
-    watch(
-      [() => store.state.Playersong, () => store.state.Index],
-      //注意监听这块，=>后面不要加{},而是直接写要被监听的内容
-      () => {
-        state.Playersong = store.state.Playersong;
-        state.index = store.state.Index;
-        audio.value.autoplay = true;
-        state.playing = true;
+    const songDuration = (value) => {
+      console.log("传的value是：" + value);
+      const min = (value / 60000).toFixed(0);
+      const sec = ((value % 60000) / 1000).toFixed(2);
+      if (sec < 10) {
+        let time = "00" + " : " + "0" + min + " : " + sec;
+        return { time };
+      } else {
+        let time = "00" + " : " + min + " : " + sec;
+        return { time };
       }
-    );
+    };
+
     return {
       ...toRefs(state),
       controlPlayer,
       audio,
       clickSongImg,
       getAudiotime,
+      songDuration,
     };
   },
 };
@@ -188,7 +221,7 @@ export default {
       background: rgb(8, 149, 102);
       border-radius: 100px;
 
-      .playing {
+      .toplay {
         width: 0;
         height: 0;
         border: 8px solid transparent;
@@ -197,7 +230,7 @@ export default {
         border-radius: 2px;
         transform: rotate(360deg);
       }
-      .stoped {
+      .tostop {
         height: 12px;
         width: 12px;
         border-radius: 2px;

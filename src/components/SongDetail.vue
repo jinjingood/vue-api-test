@@ -24,31 +24,33 @@
     </p>
   </div>
   <div class="controplayer-box">
-    <div class="player-rihgt">
+    <div class="progress-box">
+      <a-slider class="progress" v-model:value="duration.time" />
+      <div>{{ duration.time }}</div>
+    </div>
+    <div class="player-box">
+      <div class="changesong-btn" @click="changesong(-1)">
+        <div class="pre-icon">上一首</div>
+      </div>
       <div class="play-btn" @click="changeplaying">
         <div v-if="!playing" class="stoped"></div>
         <div v-else class="playing"></div>
+      </div>
+      <div class="changesong-btn" @click="changesong(1)">
+        <div class="next-icon">下一首</div>
       </div>
     </div>
   </div>
 </template>
 <script>
-import {
-  onMounted,
-  reactive,
-  toRefs,
-  computed,
-  watch,
-  ref,
-  watchEffect,
-} from "vue";
+import { onMounted, reactive, toRefs, computed, watch, ref } from "vue";
 import { useStore } from "vuex";
 import { getLyrics } from "@/requests/api/home";
 
 export default {
   name: "SongDetail",
-  props: ["songdetail", "open"],
-  emits: ["closeSongDetail"],
+  props: ["songdetail", "open", "songlist"],
+  emits: ["closeSongDetail", "changeSongDetail"],
   setup(props, context) {
     const store = useStore();
     const state = reactive({
@@ -58,7 +60,16 @@ export default {
       playing: store.state.playing,
       nowtime: 0,
       currenttime: store.state.CurrentTime,
+      duration: 0,
     });
+
+    onMounted(async () => {
+      //获取歌词
+      let res = await getLyrics(state.songdetail.id);
+      state.lyrics = res.data;
+      console.log("歌词是：" + JSON.stringify(state.lyrics.lrc?.lyric));
+    });
+
     watch(
       [() => props.songdetail, store.state.playing],
       [
@@ -68,34 +79,35 @@ export default {
         () => {
           state.playing = store.state.playing;
         },
-        console.log("歌词页监听到playing变化了吗？:" + state.playing),
-      ]
+        async () => {
+          //不写这个，歌词就不会同时切换，因为歌词实在onMounted加载的，要在监听里再调用一次api
+          let res = await getLyrics(state.songdetail.id);
+          state.lyrics = res.data;
+          console.log("歌词切换了");
+        },
+      ],
+      { deep: true, immediate: true }
     );
 
-    let lyricbox = ref();
+    let lyricbox = ref(); //监听播放器的时间变化
     watch(
-      //监听播放器的时间变化
-      () => store.state.CurrentTime,
+      [() => store.state.CurrentTime, () => props.songdetail],
 
+      //必须包在[]里才有效果，不然好像只执行第一个函数
       () => {
         state.currenttime = store.state.CurrentTime;
       },
       () => {
         const nowlyric = document.querySelector("p.now-lyric");
-        if (nowlyric && nowlyric.offsetTop > 660) {
-          lyricbox.value.scrollTop = nowlyric.offsetTop - 660;
+        if (nowlyric && nowlyric.offsetTop > 500) {
+          lyricbox.value.scrollTop = nowlyric.offsetTop - 580;
           // console.log([lyricbox.value]);
           // console.log([nowlyric]);
         }
-      },
-      () => {
-        state.songdetail = props.songdetail;
-      },
-      () => {
-        state.playing = store.state.playing;
       }
     );
 
+    //提取每一行的歌词和秒数
     state.lyricArr = computed(() => {
       const arr = state.lyrics.lrc?.lyric
         .split(/[(\r\n)\r\n]+/)
@@ -118,22 +130,28 @@ export default {
 
     const isnowtime = (item, index) => {
       if (
-        index + 1 !== state.lyricArr.length &&
         item.Sectime <= state.currenttime &&
         state.lyricArr[index + 1].Sectime >= state.currenttime
       ) {
-        {
-          // console.log("播放器时间state.currenttime:" + state.currenttime);
-          // console.log("item.Sectime:" + item.Sectime);
-          return true;
-        }
-      } else if (index + 1 === state.lyricArr.length) {
+        // console.log("播放器时间state.currenttime:" + state.currenttime);
+        // console.log("item.Sectime:" + item.Sectime);
         return true;
       }
     };
 
+    const changesong = (value) => {
+      let num = store.state.Index + value;
+      if (num < 0) {
+        num = store.state.Playersongs.length - 1;
+        // num = 0;不能把0号歌曲的上一首设为0，可能是因为切换播放的时候需要监听序号，此时序号还设为0的话，就没有触发索引更新，所以报错
+      } else if (num === store.state.Playersongs.length) {
+        num = 0;
+      }
+      store.commit("changeIndex", num);
+      context.emit("changeSongDetail", num); //把索引号传给父组件
+    };
+
     const closeSongDetail = () => {
-      // props.open = false;
       context.emit("closeSongDetail", false);
     };
 
@@ -141,27 +159,34 @@ export default {
       if (!state.playing) {
         state.playing = true;
         store.commit("updatePlaying", true);
-        // context.emit("changeplaying", true);
       } else {
         state.playing = false;
         store.commit("updatePlaying", false);
-        // context.emit("changeplaying", false);
       }
-      console.log("点击了碟片，store的playing是：" + store.state.playing);
     };
 
-    onMounted(async () => {
-      //获取歌词
-      let res = await getLyrics(state.songdetail.id);
-      state.lyrics = res.data;
-      console.log("歌词是：" + JSON.stringify(state.lyrics.lrc?.lyric));
+    state.duration = computed(() => {
+      let value = state.songdetail.dt;
+      console.log("传的value是：" + value);
+      const min = (value / 60000).toFixed(0);
+      const sec = ((value % 60000) / 1000).toFixed(2);
+      if (sec < 10) {
+        let time = "00" + " : " + "0" + min + " : " + sec;
+        return { time };
+      } else {
+        let time = "00" + " : " + min + " : " + sec;
+        return { time };
+      }
     });
+
     return {
       ...toRefs(state),
       closeSongDetail,
       changeplaying,
       isnowtime,
       lyricbox,
+      changesong,
+      // songDuration
     };
   },
 };
@@ -173,6 +198,7 @@ export default {
   border-radius: 20px;
   z-index: -1;
   height: 100%;
+  background-color: #d2d2d2;
   .bg-img {
     width: 100%;
     height: 100%;
@@ -181,7 +207,6 @@ export default {
   }
 }
 .top-box {
-  // position: absolute;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -197,13 +222,14 @@ export default {
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+    color: #ffffff;
   }
   .close {
     display: inline-block;
     width: 16px;
     height: 2px;
     border-radius: 2px;
-    background: rgb(33, 33, 33);
+    background: #ffffff;
     transform: rotate(45deg);
   }
   .close::after {
@@ -212,16 +238,15 @@ export default {
     width: 16px;
     height: 2px;
     border-radius: 2px;
-    background: rgb(33, 33, 33);
+    background: #ffffff;
     transform: rotate(-90deg);
   }
 }
 .song-infor-box {
-  margin-top: 100px;
+  width: calc(100% - 160px);
+  margin: 40px 80px 30px 80px;
   .img-running-box,
   .img-stop-box {
-    width: calc(100% - 100px);
-    margin: 50px;
     border: 70px solid #000;
     border-radius: 50%;
     .song-img {
@@ -244,7 +269,7 @@ export default {
   }
 }
 .lyrics-box {
-  height: calc(100% - 800px);
+  height: calc(100% - 750px);
   padding: 0 30px;
   overflow-y: scroll;
   scroll-behavior: smooth;
@@ -267,36 +292,55 @@ export default {
     word-break: break-all;
   }
 }
-.player-rihgt {
-  display: inline-flex;
-  .play-btn {
+.controplayer-box {
+  margin-top: 40px;
+  padding: 0 20px;
+  .progress-box {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 80px;
-    width: 80px;
-    margin: auto;
-    // background-color: #ffffff20;
-    border: 2px solid #ffffff;
-    border-radius: 100px;
-
-    .playing {
-      width: 0;
-      height: 0;
-      border: 18px solid transparent;
-      border-left: 30px solid white;
-      margin-left: 26px;
-      border-radius: 4px;
-      transform: rotate(360deg);
+    .progress {
+      display: inline-block;
+      .ant-progress-text {
+        color: #ffffff !important;
+      }
     }
-    .stoped {
-      height: 36px;
-      width: 30px;
-      border: none;
-      border-left: 10px solid #ffffff;
-      border-right: 10px solid #ffffff;
-      border-radius: 2px;
-      // background: white;
+  }
+  .player-box {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    .changesong-btn,
+    .play-btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 80px;
+      width: 80px;
+      margin: auto;
+      // background-color: #ffffff20;
+      border: 2px solid #ffffff;
+      border-radius: 100px;
+
+      .playing {
+        width: 0;
+        height: 0;
+        border: 18px solid transparent;
+        border-left: 30px solid white;
+        margin-left: 26px;
+        border-radius: 4px;
+        transform: rotate(360deg);
+      }
+      .stoped {
+        height: 36px;
+        width: 30px;
+        border: none;
+        border-left: 10px solid #ffffff;
+        border-right: 10px solid #ffffff;
+        border-radius: 2px;
+        // background: white;
+      }
+    }
+    .changesong-btn {
+      color: #ffffff;
     }
   }
 }

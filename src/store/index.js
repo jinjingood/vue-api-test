@@ -4,7 +4,7 @@ export default createStore({
   state: {
     MusicList: JSON.parse(localStorage.getItem("MusicList")) || [], //这是本地上传练习
 
-    Playersong: [
+    Playersongs: [
       {
         id: 159538805,
         name: "HAPPINESS (会幸福的）",
@@ -21,27 +21,39 @@ export default createStore({
     playing: false,
     Open: false,
     CurrentTime: 0, //播放器播放到多少毫秒
+    SongDuration: 0,
+    SongDetail: {},
   },
   getters: {},
   mutations: {
     UPLOAD(state, obj) {
       state.MusicList.unshift(obj);
     },
-    updatePlayersong(state, value) {
-      state.Playersong = value;
+    updatePlayersongs(state, value) {
+      state.Playersongs = value;
     },
     updateIndex(state, index) {
       state.Index = index;
     },
     updatePlaying(state, value) {
       state.playing = value;
-      console.log("store的playing变了：" + state.playing);
+      // console.log("store的playing变了：" + state.playing);
     },
     updateOpen(state, value) {
       state.Open = value;
     },
     updateTime(state, value) {
       state.CurrentTime = value;
+    },
+    sentDuration(state, value) {
+      state.SongDuration = value;
+    },
+    changeIndex(state, num) {
+      state.Index = num;
+    },
+    updateSongDetail(state, value) {
+      state.SongDetail = value;
+      console.log("store接收到切歌：" + JSON.stringify(state.SongDetail));
     },
   },
   actions: {},

@@ -12,7 +12,12 @@
       class="PlayList"
     ></PlayList>
     <div class="SongDetail-box" v-if="open">
-      <SongDetail :songdetail="songdetail" @closeSongDetail="closeSongDetail" />
+      <SongDetail
+        :songdetail="songdetail"
+        :songlist="songlist"
+        @closeSongDetail="closeSongDetail"
+        @changeSongDetail="changeSongDetail"
+      />
     </div>
   </div>
 </template>
@@ -21,7 +26,7 @@
 import { onMounted, reactive, toRefs, watch } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router"; //写这个才能把<router-link>携带的参数接受到
-import { getPlaylist, getAllMusic } from "@/requests/api/home";
+import { getPlaylist, getAllMusic, getLyrics } from "@/requests/api/home";
 import MusicListHeader from "@/components/MusicListHeader.vue";
 import PlayList from "@/components/PlayList.vue";
 import Nev from "@/components/Nev.vue";
@@ -39,29 +44,39 @@ export default {
       trackIds: [],
       open: store.state.Open,
       songdetail: {},
+      index: store.state.Index,
     });
-    //
+    
     watch(
       () => store.state.Open,
       () => {
         state.open = store.state.Open;
-        console.log("监听到了store中open的变化：" + store.state.Open);
+        // console.log("监听到了store中open的变化：" + store.state.Open);
       }
     );
-    const openSongDetail = (value) => {
-      state.songdetail = value;
-      // state.open = true;
+
+    watch(
+      () => store.state.Index,
+      () => {
+        state.songdetail = state.songlist[store.state.Index];
+      }
+    );
+
+    const openSongDetail = (index) => {
+      state.songdetail = state.songlist[index];
       store.commit("updateOpen", true);
+    };
+
+    const changeSongDetail = (num) => {
+      store.commit("updateIndex", num);
+      console.log("接收到了索引号：" + num);
+      openSongDetail();
     };
 
     const closeSongDetail = (value) => {
       state.open = value;
       store.commit("updateOpen", false);
     };
-
-    // const changeplaying = (value) => {
-    //   store.commit("updatePlaying", value);
-    // };
 
     onMounted(async () => {
       //获取歌单id
@@ -85,20 +100,19 @@ export default {
       // console.log("songlist:"+JSON.stringify(state.songlist));
 
       //将数据保存到sessionStorage里
-      sessionStorage.setItem("songlist", JSON.stringify(state.songlist));
+      localStorage.setItem("musicitem保存数据：", JSON.stringify(state));
 
-      //
-      // let result2 = await getSongdetail(state.clickid);
-      // state.songdetail = result2.data.songs;
-      // console.log("歌曲详情是：" + JSON.stringify(state.songdetail));
-      // console.log("图片是：" + JSON.stringify(state.songdetail)[0].al?.picUrl);
+      // //获取歌词
+      // let ressult2 = await getLyrics(state.songdetail.id);
+      // state.lyrics = ressult2.data;
+      // console.log("歌词是：" + JSON.stringify(state.lyrics.lrc?.lyric));
     });
 
     return {
       ...toRefs(state),
       openSongDetail,
       closeSongDetail,
-      // changeplaying,
+      changeSongDetail,
     };
   },
 };
@@ -130,7 +144,6 @@ export default {
     position: fixed;
     width: calc(100% - 60px);
     height: calc(100% - 82px);
-    background-color: aliceblue;
     z-index: 1;
     transition: all 1s ease-out;
   }
