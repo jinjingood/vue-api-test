@@ -7,10 +7,7 @@
     <span class="close"></span>
   </div>
   <div class="song-infor-box">
-    <div
-      :class="{ 'img-running-box': playing, 'img-stop-box': !playing }"
-      @click="changeplaying"
-    >
+    <div :class="{ 'img-running-box': playing, 'img-stop-box': !playing }">
       <img class="song-img" :src="songdetail.al?.picUrl" />
     </div>
   </div>
@@ -26,9 +23,25 @@
       {{ item.lrc }}
     </p>
   </div>
+  <div class="controplayer-box">
+    <div class="player-rihgt">
+      <div class="play-btn" @click="changeplaying">
+        <div v-if="!playing" class="stoped"></div>
+        <div v-else class="playing"></div>
+      </div>
+    </div>
+  </div>
 </template>
 <script>
-import { onMounted, reactive, toRefs, computed, watch, ref } from "vue";
+import {
+  onMounted,
+  reactive,
+  toRefs,
+  computed,
+  watch,
+  ref,
+  watchEffect,
+} from "vue";
 import { useStore } from "vuex";
 import { getLyrics } from "@/requests/api/home";
 
@@ -42,7 +55,7 @@ export default {
       songdetail: props.songdetail,
       lyrics: [],
       lyricArr: [],
-      playing: true,
+      playing: store.state.playing,
       nowtime: 0,
       currenttime: store.state.CurrentTime,
     });
@@ -63,25 +76,24 @@ export default {
     watch(
       //监听播放器的时间变化
       () => store.state.CurrentTime,
-      [
-        () => {
-          state.currenttime = store.state.CurrentTime;
-        },
-        () => {
-          const nowlyric = document.querySelector("p.now-lyric");
-          if (nowlyric && nowlyric.offsetTop > 660) {
-            lyricbox.value.scrollTop = nowlyric.offsetTop - 660;
-            // console.log([lyricbox.value]);
-            // console.log([nowlyric]);
-          }
-        },
-        () => {
-          state.songdetail = props.songdetail;
-        },
-        () => {
-          state.playing = store.state.playing;
-        },
-      ]
+
+      () => {
+        state.currenttime = store.state.CurrentTime;
+      },
+      () => {
+        const nowlyric = document.querySelector("p.now-lyric");
+        if (nowlyric && nowlyric.offsetTop > 660) {
+          lyricbox.value.scrollTop = nowlyric.offsetTop - 660;
+          // console.log([lyricbox.value]);
+          // console.log([nowlyric]);
+        }
+      },
+      () => {
+        state.songdetail = props.songdetail;
+      },
+      () => {
+        state.playing = store.state.playing;
+      }
     );
 
     state.lyricArr = computed(() => {
@@ -253,6 +265,39 @@ export default {
     color: aquamarine;
     line-height: 30px;
     word-break: break-all;
+  }
+}
+.player-rihgt {
+  display: inline-flex;
+  .play-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80px;
+    width: 80px;
+    margin: auto;
+    // background-color: #ffffff20;
+    border: 2px solid #ffffff;
+    border-radius: 100px;
+
+    .playing {
+      width: 0;
+      height: 0;
+      border: 18px solid transparent;
+      border-left: 30px solid white;
+      margin-left: 26px;
+      border-radius: 4px;
+      transform: rotate(360deg);
+    }
+    .stoped {
+      height: 36px;
+      width: 30px;
+      border: none;
+      border-left: 10px solid #ffffff;
+      border-right: 10px solid #ffffff;
+      border-radius: 2px;
+      // background: white;
+    }
   }
 }
 </style>
