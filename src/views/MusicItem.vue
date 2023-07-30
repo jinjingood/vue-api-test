@@ -23,7 +23,7 @@
 </template>
 
 <script>
-import { onMounted, reactive, toRefs, watch } from "vue";
+import { onMounted, reactive, toRefs, watch, watchEffect } from "vue";
 import { useStore } from "vuex";
 import { useRoute } from "vue-router"; //写这个才能把<router-link>携带的参数接受到
 import { getPlaylist, getAllMusic, getLyrics } from "@/requests/api/home";
@@ -46,7 +46,7 @@ export default {
       songdetail: {},
       index: store.state.Index,
     });
-    
+
     watch(
       () => store.state.Open,
       () => {
@@ -57,25 +57,28 @@ export default {
 
     watch(
       () => store.state.Index,
+
       () => {
-        state.songdetail = state.songlist[store.state.Index];
+        state.index = store.state.Index;
+        state.songdetail = state.songlist[state.index];
       }
     );
 
     const openSongDetail = (index) => {
       state.songdetail = state.songlist[index];
       store.commit("updateOpen", true);
+      // store.commit("updateIndex", index);
+    };
+
+    const closeSongDetail = () => {
+      // state.open = value;
+      store.commit("updateOpen", false);
     };
 
     const changeSongDetail = (num) => {
       store.commit("updateIndex", num);
       console.log("接收到了索引号：" + num);
       openSongDetail();
-    };
-
-    const closeSongDetail = (value) => {
-      state.open = value;
-      store.commit("updateOpen", false);
     };
 
     onMounted(async () => {
@@ -94,7 +97,7 @@ export default {
       trackIdsdata.forEach((item) => {
         return state.trackIds.push(item.id);
       });
-      //2.把id数组传给api
+      //2.把id数组传给api，获取歌单list
       let result = await getAllMusic(state.trackIds);
       state.songlist = result.data.songs;
       // console.log("songlist:"+JSON.stringify(state.songlist));

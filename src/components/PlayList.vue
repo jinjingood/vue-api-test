@@ -21,6 +21,7 @@ import { useStore } from "vuex";
 export default {
   name: "PlayList",
   props: ["songlist"],
+  emits: ["clickSongName"],
   setup(props, context) {
     const store = useStore();
     const state = reactive({
@@ -31,7 +32,7 @@ export default {
       store.commit("updatePlayersongs", props.songlist);
       store.commit("updateIndex", index);
       store.commit("updatePlaying", true);
-      context.emit("clickSongList", index);
+      // context.emit("clickSongList", index);
       //这里出了很大的错，我原先在state里面声明了一个songlist：props.songlist，结果导致store.commit一直传的是空值，只有这个组件我修改后，才能拿到。
       //原因1：props.songlist只会在一开始拿到1次，所以我需要监听props.songlist才行
       //改法1:因为我拿到props.songlist不需要做啥变化，直接就用，所以不需要在state用一个变量来承接props.songlist
@@ -77,11 +78,6 @@ export default {
       }
       .name {
         display: inline-block;
-        // > span:first-child {
-        //   font-size: 16px;
-        //   font-weight: 600;
-        //   line-height: 16px;
-        // }
         .songname {
           display: block;
           font-size: 16px;
