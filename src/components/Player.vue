@@ -12,9 +12,9 @@
         <span class="song-name">{{
           Playersongs[index] ? Playersongs[index].name : ""
         }}</span>
-        <span class="singer-name">{{
+        <!-- <span class="singer-name">{{
           songDuration(Playersongs[index].dt).time
-        }}</span>
+        }}</span> -->
       </div>
     </div>
     <div class="player-rihgt">
@@ -24,6 +24,7 @@
       </div>
       <audio
         ref="audio"
+        @ended="palyNextSong"
         :src="`https://music.163.com/song/media/outer/url?id=${Playersongs[index].id}.mp3`"
       ></audio>
     </div>
@@ -31,15 +32,7 @@
 </template>
 
 <script>
-import {
-  reactive,
-  toRefs,
-  ref,
-  watch,
-  onMounted,
-  computed,
-  watchEffect,
-} from "vue";
+import { reactive, toRefs, ref, watch } from "vue";
 import { useStore } from "vuex";
 
 export default {
@@ -66,15 +59,20 @@ export default {
       () => {
         state.playing = store.state.playing;
         if (state.playing) {
+          // audio.value.currentTime = store.state.currentTime;
           getAudiotime();
           // audio.value.play()
-          setTimeout(() => {
-            audio.value.play(), 100;
-          });
+          let timeout = setTimeout(() => {
+            audio.value.play();
+            clearTimeout(timeout);
+          }, 100);
           //为了防止报play()被中断的错误（中断好像是因为立即调用了pause(),网上说的这种方法：
           //https://segmentfault.com/q/1010000007130230
         } else {
-          audio.value.pause();
+          // audio.value.pause()
+          let platout = setTimeout(() => {
+            audio.value.pause(), clearTimeout(platout);
+          }, 100);
           clearInterval(state.interVal);
         }
       }
@@ -94,20 +92,17 @@ export default {
     const audio = ref();
     const controlPlayer = () => {
       if (state.playing) {
+        // audio.value.currentTime = 0;
         audio.value.pause();
         store.commit("updatePlaying", false);
         getAudiotime();
       } else {
         audio.value.play();
+        audio.value.isPlaying = true;
         store.commit("updatePlaying", true);
         clearInterval(state.interVal); //清除定时器
       }
     };
-
-    // state.audioduration = () => {
-    //   console.log("audio时长是：" + audio.value.duration);
-    //   return audio.value.duration;
-    // };
 
     //点击唱片，打开SongDetai组件
     const clickSongImg = () => {
@@ -121,22 +116,30 @@ export default {
     const getAudiotime = () => {
       state.interVal = setInterval(() => {
         store.commit("updateTime", audio.value.currentTime); //value不能去掉，否则就拿不到播放器时间了
-      }, 500);
+      }, 100);
       // return state.interVal//不知道能不能解决currentTime报错问题
       // console.log("每秒打印播放时间：" + audio.value.currentTime);
     };
 
-    const songDuration = (value) => {
-      console.log("传的value是：" + value);
-      const min = (value / 60000).toFixed(0);
-      const sec = ((value % 60000) / 1000).toFixed(2);
-      if (sec < 10) {
-        let time = "00" + " : " + "0" + min + " : " + sec;
-        return { time };
-      } else {
-        let time = "00" + " : " + min + " : " + sec;
-        return { time };
+    // const songDuration = (value) => {
+    //   console.log("传的value是：" + value);
+    //   const min = (value / 60000).toFixed(0);
+    //   const sec = ((value % 60000) / 1000).toFixed(2);
+    //   if (sec < 10) {
+    //     let time = "00" + " : " + "0" + min + " : " + sec;
+    //     return { time };
+    //   } else {
+    //     let time = "00" + " : " + min + " : " + sec;
+    //     return { time };
+    //   }
+    // };
+
+    const palyNextSong = () => {
+      let num = state.index + 1;
+      if (num === state.Playersongs.length) {
+        num = 0;
       }
+      store.commit("updateIndex", num);
     };
 
     return {
@@ -145,7 +148,8 @@ export default {
       audio,
       clickSongImg,
       getAudiotime,
-      songDuration,
+      palyNextSong,
+      // songDuration,
     };
   },
 };

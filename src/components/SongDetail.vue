@@ -4,7 +4,7 @@
   </div>
   <div class="top-box" @click="closeSongDetail">
     <h4>{{ songdetail.al?.name }}</h4>
-    <span class="close"></span>
+    <div class="close"></div>
   </div>
   <div class="song-infor-box">
     <div :class="{ 'img-running-box': playing, 'img-stop-box': !playing }">
@@ -24,9 +24,15 @@
     </p>
   </div>
   <div class="controplayer-box">
-    <div class="progress-box">
-      <a-slider class="progress" v-model:value="duration.time" />
-      <div>{{ duration.time }}</div>
+    <a-slider
+      v-model:value="currenttime"
+      :max="songdetail.dt"
+      :step="0.1"
+      @change="changeSildeTime(value)"
+    />
+    <div class="time-box">
+      <span class="currenttime">{{ formmatcurrentime }}</span>
+      <span class="duration">{{ duration }}</span>
     </div>
     <div class="player-box">
       <div class="changesong-btn" @click="changesong(-1)">
@@ -43,7 +49,15 @@
   </div>
 </template>
 <script>
-import { onMounted, reactive, toRefs, computed, watch, ref } from "vue";
+import {
+  onMounted,
+  reactive,
+  toRefs,
+  computed,
+  watch,
+  ref,
+  watchEffect,
+} from "vue";
 import { useStore } from "vuex";
 import { getLyrics } from "@/requests/api/home";
 
@@ -58,20 +72,20 @@ export default {
       lyrics: [],
       lyricArr: [],
       playing: store.state.playing,
-      nowtime: 0,
       currenttime: store.state.CurrentTime,
-      duration: 0,
+      duration: "",
+      formmatcurrentime: "",
     });
 
     onMounted(async () => {
       //获取歌词
       let res = await getLyrics(state.songdetail.id);
       state.lyrics = res.data;
-      console.log("歌词是：" + JSON.stringify(state.lyrics.lrc?.lyric));
+      // console.log("歌词是：" + JSON.stringify(state.lyrics.lrc?.lyric));
     });
 
-    watch(
-      [() => props.songdetail, store.state.playing],
+    watchEffect(
+      [() => store.state.playing],
       [
         () => {
           state.songdetail = props.songdetail;
@@ -91,20 +105,78 @@ export default {
 
     let lyricbox = ref(); //监听播放器的时间变化
     watch(
-      [() => store.state.CurrentTime, () => props.songdetail],
+      //不能用watcheffect，会无法触发监听，时间轴不会更新
+      [
+        () => store.state.CurrentTime,
+        () => props.songdetail,
+        () => store.state.playing,
+      ],
 
       //必须包在[]里才有效果，不然好像只执行第一个函数
+      [
+        () => {
+          state.currenttime = store.state.CurrentTime;
+          state.songdetail = props.songdetail;
+          state.playing = store.state.playing;
+        },
+        () => {
+          const nowlyric = document.querySelector("p.now-lyric");
+          if (nowlyric && nowlyric.offsetTop > 500) {
+            lyricbox.value.scrollTop = nowlyric.offsetTop - 580;
+            // console.log([lyricbox.value]);
+            // console.log([nowlyric]);
+          }
+        },
+      ],
+      { deep: true, immediate: true }
+    );
+
+    state.duration = computed(
       () => {
-        state.currenttime = store.state.CurrentTime;
-      },
-      () => {
-        const nowlyric = document.querySelector("p.now-lyric");
-        if (nowlyric && nowlyric.offsetTop > 500) {
-          lyricbox.value.scrollTop = nowlyric.offsetTop - 580;
-          // console.log([lyricbox.value]);
-          // console.log([nowlyric]);
+        //不要用computed会报错
+        let value = state.songdetail.dt;
+        const min = (value / 60000).toFixed(0);
+        const sec = ((value % 60000) / 1000).toFixed(0);
+        //不加number好像就不是数字，无法跟10做比较
+        if (min < 10 && sec >= 10) {
+          let time = "0" + min + " : " + sec;
+          return time;
+        } else if (min >= 10 && sec < 10) {
+          let time = min + " : " + "0" + sec;
+          return time;
+        } else if (min < 10 && sec < 10) {
+          let time = "0" + min + " : " + "0" + sec;
+          return time;
+        } else {
+          let time = min + " : " + sec;
+          return time;
         }
-      }
+      },
+      { deep: true, immediate: true }
+    );
+
+    state.formmatcurrentime = computed(
+      () => {
+        //不要用computed会报错
+        let value = store.state.CurrentTime;
+        const min = (value / 60000).toFixed(0);
+        const sec = ((value % 60000) / 1000).toFixed(0);
+        //不加number好像就不是数字，无法跟10做比较
+        if (Number(min) < 10 && Number(sec) >= 10) {
+          let time = "0" + min + " : " + sec;
+          return time;
+        } else if (Number(min) >= 10 && Number(sec) < 10) {
+          let time = min + " : " + "0" + sec;
+          return time;
+        } else if (Number(min) < 10 && Number(sec) < 10) {
+          let time = "0" + min + " : " + "0" + sec;
+          return time;
+        } else {
+          let time = min + " : " + sec;
+          return time;
+        }
+      },
+      { deep: true, immediate: true }
     );
 
     //提取每一行的歌词和秒数
@@ -147,8 +219,11 @@ export default {
       } else if (num === store.state.Playersongs.length) {
         num = 0;
       }
-      store.commit("changeIndex", num);
+      store.commit("updateIndex", num);
+      state.currenttime = 0; //先更新时间轴到0
+      store.commit("updateTime", 0); //把0传给store中的currentTime，使其重新传值给时间轴，否则时间轴不移动
       context.emit("changeSongDetail", num); //把索引号传给父组件
+      console.log("切歌了：" + JSON.stringify(state.songdetail));
     };
 
     const closeSongDetail = () => {
@@ -165,19 +240,12 @@ export default {
       }
     };
 
-    state.duration = computed(() => {
-      let value = state.songdetail.dt;
-      console.log("传的value是：" + value);
-      const min = (value / 60000).toFixed(0);
-      const sec = ((value % 60000) / 1000).toFixed(2);
-      if (sec < 10) {
-        let time = "00" + " : " + "0" + min + " : " + sec;
-        return { time };
-      } else {
-        let time = "00" + " : " + min + " : " + sec;
-        return { time };
-      }
-    });
+    const changeSildeTime = (value) => {
+      state.currenttime = value;
+      store.commit("updateTime", value);
+      store.commit("updatePlaying", true);
+      // state.playing = true;
+    };
 
     return {
       ...toRefs(state),
@@ -186,7 +254,7 @@ export default {
       isnowtime,
       lyricbox,
       changesong,
-      // songDuration
+      changeSildeTime,
     };
   },
 };
@@ -198,34 +266,48 @@ export default {
   border-radius: 20px;
   z-index: -1;
   height: 100%;
-  background-color: #d2d2d2;
+  background-color: #fff;
   .bg-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: blur(50px);
+    filter: blur(50px) brightness(80%) saturate(100%);
   }
 }
 .top-box {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: center; //使元素水平居中对齐
   width: 100%;
   margin: 20px 0;
-  padding: 8px 16px;
+  padding: 8px 20px;
   height: 20px;
   > h4 {
-    width: 90%;
     margin: 0;
-    line-height: 20px;
+    color: #ffffff;
+    font-size: 18px;
     text-align: center;
     white-space: nowrap;
-    text-overflow: ellipsis;
+    // text-overflow: ellipsis;
     overflow: hidden;
-    color: #ffffff;
+    animation: runing 10s linear infinite;
+    @keyframes runing {
+      // 0% {
+      //   transform: translateX(100%);
+      // }
+      // 100% {
+      //   transform: translateX(0);
+      // }
+      0% {
+        margin-left: 100%;
+      }
+      100% {
+        margin-right: 0%;
+      }
+    }
   }
   .close {
-    display: inline-block;
+    margin-left: 20px;
     width: 16px;
     height: 2px;
     border-radius: 2px;
@@ -242,6 +324,7 @@ export default {
     transform: rotate(-90deg);
   }
 }
+
 .song-infor-box {
   width: calc(100% - 160px);
   margin: 40px 80px 30px 80px;
@@ -295,19 +378,48 @@ export default {
 .controplayer-box {
   margin-top: 40px;
   padding: 0 20px;
-  .progress-box {
+  .time-box {
     display: flex;
-    .progress {
-      display: inline-block;
-      .ant-progress-text {
-        color: #ffffff !important;
-      }
+    justify-content: space-between;
+    .currenttime,
+    .duration {
+      color: #fff;
+      width: 100%;
+    }
+    .currenttime {
+      text-align: left;
+      color: #ffffff80;
+    }
+    .duration {
+      text-align: right;
+      color: #ffffff80;
+    }
+  }
+  .ant-slider {
+    padding: 0;
+    margin: 4px 0;
+    width: 100%;
+    :deep.ant-slider-horizontal .ant-slider-rail {
+      height: 3px;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    :deep.ant-slider .ant-slider-track {
+      height: 3px;
+      background-color: #fff;
+    }
+    :deep.ant-slider .ant-slider-handle::after {
+      width: 0;
+      height: 0;
+      margin-top: 2px;
+      background-color: #fff;
+      box-shadow: none;
     }
   }
   .player-box {
     display: flex;
     justify-content: space-between;
     margin-top: 40px;
+
     .changesong-btn,
     .play-btn {
       display: flex;
